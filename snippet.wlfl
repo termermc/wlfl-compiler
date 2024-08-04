@@ -1,0 +1,27 @@
+namespace thing.stuff.code;
+
+// Import time library
+using std.time as stdtime;
+using std.math.random;
+
+@NoMangle
+export func doStuff(): String {
+    println(time.nowEpoch().toString());
+
+    let someRandom = random(0, 100);
+    println("Now: " + someRandom.toString());
+
+    let multiLineString = "Line1
+Line2
+Line3";
+    println(multiLineString);
+
+    // Use backtick-quoted keywords to use them as identifiers
+    var `export` = "something something";
+
+    if (`export` == "something something") {
+        return "something something";
+    } else {
+        return "something else";
+    }
+}
