@@ -1,44 +1,133 @@
 type TokenType* = enum
     Keyword
+        ## Any unreserved keyword
+
     QuotedKeyword
+        ## Like Keyword, but quoted with backticks, and can have the same name as a reserved keyword.
+        ## Example: ``export`` 
+
     Dot
+        ## `.`
+
     OpenParenthesis
+        ## `(`
+
     CloseParenthesis
+        ## `)`
+
     Colon
+        ## `:`
+
     Semicolon
+        ## `;`
+
     Asterisk
+        ## `*`
+
     Assignment
+        ## `=`
+
     EqualsComparison
+        ## `==`
+
     NotEqualsComparison
+        ## `!=`
+
     LesserComparison
+        ## `<`
+
     GreaterComparison
+        ## `>`
+
     AndComparison
+        ## `&&`
+
     OrComparison
+        ## `||`
+
     NamespaceKeyword
+        ## `namespace`
+
     UsingKeyword
+        ## `using`
+
     Annotation
+        ## `@` followed by zero or more alphanumeric characters.
+        ## A number must not immediately follow the `@`.
+
     ExportKeyword
+        ## `export`
+
     FuncKeyword
+        ## `func`
+
     ReturnKeyword
+        ## `return`
+
     BreakKeyword
+        ## `break`
+
     ContinueKeyword
+        ## `continue`
+
     DoKeyword
+        ## `do`
+
     LetKeyword
+        ## `let`
+
     VarKeyword
+        ## `var`
+
     ConstKeyword
+        ## `const`
+
     IfKeyword
+        ## `if`
+
     WhileKeyword
+        ## `while`
+
     OpenCurlyBracket
+        ## `{`
+
     CloseCurlyBracket
+        ## `}`
+
     OpenSquareBracket
+        ## `[`
+
     CloseSquareBracket
+        ## `]`
+
     IntegerLit
+        ## An integer literal.
+        ## Example: `123`
+
     DecimalLit
+        ## A decimal literal.
+        ## Example: `123.456`
+
     HexLit
+        ## A hexadecimal literal.
+        ## Example: `0x123`
+
     CharLit
+        ## A character literal.
+        ## Example: `'a'`
+
     StringLit
+        ## A string literal.
+        ## String literals store the string value without processing any escape sequences.
+        ## Example: `"Hello, world!"`
+
     TrueLit
+        ## A true literal.
+        ## Example: `true`
+
     FalseLit
+        ## A false literal.
+        ## Example: `false`
 
 type Token* = object
     lineNum*: uint32
@@ -121,6 +210,8 @@ type Token* = object
         charLitVal*: char
     of StringLit:
         stringLitVal*: string
+    of BadUnclosedStringLit:
+        badUnclosedStringLitVal*: string
     of TrueLit:
         discard
     of FalseLit:

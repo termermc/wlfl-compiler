@@ -1,22 +1,39 @@
 import token
 
-const escapeSequences = {
-    'n': '\n',
-    'r': '\r',
-    't': '\t',
-}
+## Handles tokenizing a string literal.
+## Expects the first quote to already have been consumed.
+## Does not encode escape sequences; it is only aware of them for escaping quotes.
+func handleString(input: string, var i: int): Token =
+    var val = ""
 
-func charForEscape(escape: char): char =
-    if escape in escapeSequences:
-        return escapeSequences[escape]
-    else:
-        return escape
+    while i < input.len:
+        inc i
+        let c = input[i]
+
+        if c == '"':
+            if input[i-1] == '\\':
+                val.add c
+            else:
+                return Token(kind: StringLit, stringLitVal: val)
+        else:
+            val.add c
+    
+    # If it did not return by this point, the string is unclosed
+    return Token(kind: BadUnclosedStringLit, badUnclosedStringLitVal: val)
 
 iterator tokenize*(input: string): Token =
     var i = 0
     var lineNum = 1
     var colNum = 1
     mainLoop: while i < input.len:
+        template advance(): untyped =
+            inc i
+            inc colNum
+            continue mainLoop
+        template returnToken(token: Token): untyped =
+            yield token
+            advance()
+    
         let c = input[i]
         inc i
 
@@ -33,21 +50,13 @@ iterator tokenize*(input: string): Token =
         if c == ' ' or c == '\t':
             continue
 
-        if c == '"':
-            var gotClose = false
-            var buf = ""
+        case c:
+        of '"':
+            let strToken = handleString(input, i)
 
-            while i < input.len:
-                let c = input[i]
-                inc i
-                if c == '"':
-                    gotClose = true
-                    break
-                buf.add c
-            
-            if not gotClose:
-                # Bad string literal, nothing to return
-                break mainLoop
+            yield strToken
 
-        
-    
+            if strToken.kind == TokenType.BadUnclosedStringLit:
+                return
+
+        # TODO Other cases
