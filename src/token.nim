@@ -6,6 +6,10 @@ type TokenType* = enum
         ## Like Keyword, but quoted with backticks, and can have the same name as a reserved keyword.
         ## Example: ``export`` 
 
+    BadUnclosedQuotedKeyword
+        ## Like QuotedKeyword, but unclosed.
+        ## Example: ``export`
+
     Dot
         ## `.`
 
@@ -142,6 +146,8 @@ type Token* = object
         keywordName*: string
     of QuotedKeyword:
         quotedKeywordName*: string
+    of BadUnclosedQuotedKeyword:
+        badUnclosedQuotedKeywordVal*: string
     of Dot:
         discard
     of OpenParenthesis:

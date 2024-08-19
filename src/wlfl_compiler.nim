@@ -3,6 +3,7 @@ import ./tokenizer
 const code = """
 "\"test!\"" 
 "test"
+`export`
 """
 
 proc main(): int =

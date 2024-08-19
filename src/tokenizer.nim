@@ -21,6 +21,20 @@ func handleString(input: string, i: var int): Token =
     # If it did not return by this point, the string is unclosed
     return Token(kind: BadUnclosedStringLit, badUnclosedStringLitVal: val)
 
+func handleQuotedKeyword(input: string, i: var int): Token =
+    var val = ""
+
+    while i < input.len:
+        let c = input[i]
+        inc i
+
+        if c == '`':
+            return Token(kind: QuotedKeyword, quotedKeywordName: val)
+        else:
+            val.add c
+    
+    return Token(kind: BadUnclosedQuotedKeyword, badUnclosedQuotedKeywordVal: val)
+
 iterator tokenize*(input: string): Token =
     var i = 0
     var lineNum = 1
@@ -61,6 +75,14 @@ iterator tokenize*(input: string): Token =
                     yield strToken
 
                     if strToken.kind == TokenType.BadUnclosedStringLit:
+                        # Return
+                        break mainLoop
+                of '`':
+                    let quotedKeywordToken = handleQuotedKeyword(input, i)
+
+                    yield quotedKeywordToken
+
+                    if quotedKeywordToken.kind == TokenType.BadUnclosedQuotedKeyword:
                         # Return
                         break mainLoop
                 else:
