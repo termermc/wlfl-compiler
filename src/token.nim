@@ -120,6 +120,10 @@ type TokenType* = enum
         ## A string literal.
         ## String literals store the string value without processing any escape sequences.
         ## Example: `"Hello, world!"`
+    
+    BadUnclosedStringLit
+        ## A string literal that was never closed.
+        ## Example: `"Hello, world!`
 
     TrueLit
         ## A true literal.

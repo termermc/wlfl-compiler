@@ -1,5 +1,16 @@
-# This is just an example to get you started. A typical binary package
-# uses this file as the main entry point of the application.
+import ./tokenizer
+
+const code = """
+"\"test!\"" 
+"test"
+"""
+
+proc main(): int =
+    for token in tokenize(code):
+        echo token
+
+    return 0
 
 when isMainModule:
-  echo("Hello, World!")
+    # Exit with main() return code
+    quit(main())

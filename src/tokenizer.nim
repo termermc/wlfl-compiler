@@ -3,15 +3,15 @@ import token
 ## Handles tokenizing a string literal.
 ## Expects the first quote to already have been consumed.
 ## Does not encode escape sequences; it is only aware of them for escaping quotes.
-func handleString(input: string, var i: int): Token =
+func handleString(input: string, i: var int): Token =
     var val = ""
 
     while i < input.len:
-        inc i
         let c = input[i]
+        inc i
 
         if c == '"':
-            if input[i-1] == '\\':
+            if input[i-2] == '\\':
                 val.add c
             else:
                 return Token(kind: StringLit, stringLitVal: val)
@@ -25,38 +25,46 @@ iterator tokenize*(input: string): Token =
     var i = 0
     var lineNum = 1
     var colNum = 1
-    mainLoop: while i < input.len:
-        template advance(): untyped =
-            inc i
-            inc colNum
-            continue mainLoop
-        template returnToken(token: Token): untyped =
-            yield token
-            advance()
-    
-        let c = input[i]
-        inc i
+    block mainLoop:
+        while i < input.len:
+            block mainLoopInner:
+                template advance(): untyped =
+                    inc i
+                    inc colNum
 
-        if c == '\n':
-            inc lineNum
-            continue
-        if c == '\r':
-            continue
+                    # Continue
+                    break mainLoopInner
+                template returnToken(token: Token): untyped =
+                    yield token
+                    advance()
+            
+                let c = input[i]
+                inc i
 
-        # Confirmed not to be a line break, column advances
-        inc colNum
+                if c == '\n':
+                    inc lineNum
+                    continue
+                if c == '\r':
+                    continue
 
-        # Ignore whitespace
-        if c == ' ' or c == '\t':
-            continue
+                # Confirmed not to be a line break, column advances
+                inc colNum
 
-        case c:
-        of '"':
-            let strToken = handleString(input, i)
+                # Ignore whitespace
+                if c == ' ' or c == '\t':
+                    continue
 
-            yield strToken
+                case c:
+                of '"':
+                    let strToken = handleString(input, i)
 
-            if strToken.kind == TokenType.BadUnclosedStringLit:
-                return
+                    yield strToken
 
-        # TODO Other cases
+                    if strToken.kind == TokenType.BadUnclosedStringLit:
+                        # Return
+                        break mainLoop
+                else:
+                    echo "TODO Other cases"
+                    quit(1)
+
+                # TODO Other cases
