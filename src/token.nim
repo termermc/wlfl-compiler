@@ -42,12 +42,33 @@ type TokenType* = enum
 
     GreaterComparison
         ## `>`
+    
+    LesserEqualsComparison
+        ## `<=`
+    
+    GreaterEqualsComparison
+        ## `>=`
 
     AndComparison
         ## `&&`
 
     OrComparison
         ## `||`
+
+    BoolNot
+        ## `!`
+    
+    BitwiseAnd
+        ## `&`
+    
+    BitwiseOr
+        ## `|`
+    
+    BitwiseXor
+        ## `^`
+    
+    BitwiseNot
+        ## `~`
 
     NamespaceKeyword
         ## `namespace`
@@ -170,9 +191,23 @@ type Token* = object
         discard
     of GreaterComparison:
         discard
+    of LesserEqualsComparison:
+        discard
+    of GreaterEqualsComparison:
+        discard
     of AndComparison:
         discard
     of OrComparison:
+        discard
+    of BoolNot:
+        discard
+    of BitwiseAnd:
+        discard
+    of BitwiseOr:
+        discard
+    of BitwiseXor:
+        discard
+    of BitwiseNot:
         discard
     of NamespaceKeyword:
         discard
@@ -180,6 +215,8 @@ type Token* = object
         discard
     of Annotation:
         annotationName*: string
+            ## The name of the annotation.
+            ## If empty, no valid identifier followed the initial `@`, and the annotation is therefore invalid.
     of ExportKeyword:
         discard
     of FuncKeyword:

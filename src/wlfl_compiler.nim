@@ -4,6 +4,19 @@ const code = """
 "\"test!\"" 
 "test"
 `export`
+==
+=
+!=
+!
+&&
+&
+||
+|
+<=
+<
+>=
+>
+@cat0
 """
 
 proc main(): int =
@@ -13,5 +26,4 @@ proc main(): int =
     return 0
 
 when isMainModule:
-    # Exit with main() return code
     quit(main())
