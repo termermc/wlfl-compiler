@@ -133,13 +133,13 @@ type TokenType* = enum
         ## A decimal literal.
         ## Example: `123.456`
 
-    HexLit
-        ## A hexadecimal literal.
-        ## Example: `0x123`
-
     CharLit
         ## A character literal.
         ## Example: `'a'`
+
+    BadUnclosedCharLit
+        ## A character literal that was never closed.
+        ## Example: `'a`
 
     StringLit
         ## A string literal.
@@ -251,10 +251,16 @@ type Token* = object
         integerLitVal*: string
     of DecimalLit:
         decimalLitVal*: string
-    of HexLit:
-        hexLitVal*: string
     of CharLit:
-        charLitVal*: char
+        charLitVal*: string
+            ## The content of the character literal.
+            ## Represented by a string because it may contain control characters.
+            ## Not guaranteed to be valid.
+    of BadUnclosedCharLit:
+        badUnclosedCharLitVal*: string
+            ## The content of the character literal that was never closed.
+            ## Represented by a string because it may contain control characters.
+            ## Not guaranteed to be valid.
     of StringLit:
         stringLitVal*: string
     of BadUnclosedStringLit:

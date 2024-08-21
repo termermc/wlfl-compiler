@@ -2,6 +2,9 @@ import ./tokenizer
 
 const code = """
 "\"test!\"" 
+'"\'
+'fdsfoih
+'\0'
 "test"
 `export`
 ==
@@ -17,6 +20,8 @@ const code = """
 >=
 >
 @cat0
+
+0o79
 """
 
 proc main(): int =
