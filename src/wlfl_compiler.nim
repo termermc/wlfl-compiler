@@ -12,8 +12,11 @@ const code = """
 ==
 =
 !=
+    /// Doc block line 1
+    /// Doc block line 2
+0// Normal comment 1
 !
-&&
+&& // Normal comment 2
 &
 ||
 |

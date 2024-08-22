@@ -4,6 +4,8 @@ namespace thing.stuff.code;
 using std.time as stdtime;
 using std.math.random;
 
+/// Does stuff
+/// @returns Stuff
 @NoMangle
 export func doStuff(): String {
     println(time.nowEpoch().toString());

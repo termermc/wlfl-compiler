@@ -10,6 +10,24 @@ type TokenType* = enum
         ## Like QuotedIdent, but unclosed.
         ## Example: ``export`
 
+    DocBlock
+        ## A documentation comment block.
+        ## Example: `/// Some documentation`
+        ## 
+        ## Note that contiguous newline-separated doc comments are merged into one.
+        ## Example:
+        ## ```
+        ## /// Line 1
+        ## /// Line 2
+        ## /// @param foo The bar of the foo of the bar
+        ## ```
+        ## 
+        ## Is read as: ` Line 1\n Line 2`.
+        ## 
+        ## The initial whitespace of each line is preserved.
+        ## 
+        ## Note that special syntax inside doc blocks are not tokenized; this is the responsibility of documentation generators.
+
     Dot
         ## `.`
 
@@ -69,6 +87,24 @@ type TokenType* = enum
     
     BitwiseNot
         ## `~`
+    
+    Modulo
+        ## `%`
+
+    Exponent
+        ## `**`
+    
+    Multiply
+        ## `*`
+
+    Divide
+        ## `/`
+    
+    Add
+        ## `+`
+
+    Subtract
+        ## `-`
 
     NamespaceKeyword
         ## `namespace`
@@ -169,6 +205,8 @@ type Token* = object
         quotedIdentName*: string
     of BadUnclosedQuotedIdent:
         badUnclosedQuotedIdentVal*: string
+    of DocBlock:
+        docBlockVal*: string
     of Dot:
         discard
     of OpenParenthesis:
@@ -208,6 +246,18 @@ type Token* = object
     of BitwiseXor:
         discard
     of BitwiseNot:
+        discard
+    of Modulo:
+        discard
+    of Exponent:
+        discard
+    of Multiply:
+        discard
+    of Divide:
+        discard
+    of Add:
+        discard
+    of Subtract:
         discard
     of NamespaceKeyword:
         discard

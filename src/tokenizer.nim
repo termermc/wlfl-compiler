@@ -2,6 +2,8 @@ import std/unicode
 import ./token
 
 const alphanumericChars = {'a'..'z', 'A'..'Z', '0'..'9'}
+const wspChars = {' ', '\t'}
+const wspCharsCr = {' ', '\t', '\r'}
 
 func `==`(a, b: Rune | char): bool =
     return a.Rune == b.Rune
@@ -176,6 +178,33 @@ func handleInteger(input: seq[Rune], i: var int): Token =
     dec i
     return Token(kind: IntegerLit, integerLitVal: val)
 
+func handleDocBlock(input: seq[Rune], i: var int): Token =
+    var val = ""
+
+    while i < input.len:
+        let c = input[i]
+        inc i
+
+        if c == '\n':
+            # Skip over whitespace
+            while i < input.len and input[i].char in wspChars:
+                inc i
+            
+            if i + 2 < input.len and input[i] == '/' and input[i + 1] == '/' and input[i + 2] == '/':
+                # Encountered contiguous doc block initiator
+                val.add('\n')
+                i += 3
+                continue
+
+            else:
+                # End of doc block
+                break
+
+        else:
+            val.add(c)
+    
+    return Token(kind: DocBlock, docBlockVal: val)
+
 iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
     var i = 0
     var lineNum: uint32 = 1
@@ -211,7 +240,7 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                 inc colNum
 
                 # Ignore whitespace
-                if c == ' ' or c == '\t':
+                if c.char in wspCharsCr:
                     continue
 
                 case c:
@@ -256,7 +285,24 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                             colNum: colNum,
                         )
                     else:
-                        yield intToken
+                        yieldToken intToken
+                
+                of '/'.Rune:
+                    if i < input.len and input[i] == '/':
+                        if i + 1 < input.len and input[i + 1] == '/':
+                            # Doc block
+                            i += 2
+                            yieldToken handleDocBlock(input, i)
+                        else:
+                            # Comment, read until newline
+                            while i < input.len and input[i] != '\n':
+                                inc i
+                                inc colNum
+                            
+                            inc lineNum
+                    
+                    else:
+                        yieldToken Token(kind: Divide, lineNum: lineNum, colNum: colNum)
 
                 of '='.Rune:
                     if nextIs('='):
