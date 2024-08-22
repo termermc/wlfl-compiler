@@ -261,6 +261,7 @@ type Token* = object
             ## The content of the character literal.
             ## Represented by a string because it may contain control characters.
             ## Not guaranteed to be valid.
+            ## May be empty or contain more than one rune (an invalid state).
     of BadUnclosedCharLit:
         badUnclosedCharLitVal*: string
             ## The content of the character literal that was never closed.
