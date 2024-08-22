@@ -20,8 +20,7 @@ const code = """
 >=
 >
 @cat0
-
-0o79
+`fmt`0."lol"
 """
 
 proc main(): int =

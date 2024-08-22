@@ -58,7 +58,7 @@ func handleChar(input: string, i: var int): Token =
     # If it did not return by this point, the char is unclosed
     return Token(kind: BadUnclosedCharLit, badUnclosedCharLitVal: val)
 
-func handleQuotedKeyword(input: string, i: var int): Token =
+func handleQuotedIdent(input: string, i: var int): Token =
     var val = ""
 
     while i < input.len:
@@ -66,11 +66,11 @@ func handleQuotedKeyword(input: string, i: var int): Token =
         inc i
 
         if c == '`':
-            return Token(kind: QuotedKeyword, quotedKeywordName: val)
+            return Token(kind: QuotedIdent, quotedIdentName: val)
         else:
             val.add(c)
     
-    return Token(kind: BadUnclosedQuotedKeyword, badUnclosedQuotedKeywordVal: val)
+    return Token(kind: BadUnclosedQuotedIdent, badUnclosedQuotedIdentVal: val)
 
 func handleIdentifierRaw(input: string, i: var int): string =
     var val = ""
@@ -92,42 +92,37 @@ func handleIdentifierRaw(input: string, i: var int): string =
     return val
 
 func handleInteger(input: string, i: var int): Token =
-    var val = ""
+    var val = newStringOfCap(1)
+    val.add(input[i - 1])
+
+    # fmt will be \0 for the second char, after which the format will be determined
     var fmt = '\0'
 
     const fmtBin = 'b'
+    const fmtDec = 'd'
     const fmtOct = 'o'
     const fmtHex = 'x'
     const fmtChars = {
         fmtBin,
+        fmtDec,
         fmtOct,
         fmtHex,
     }
-
-    var isFirst = true
-
-    # Start from char when this function was invoked
-    dec i
 
     while i < input.len:
         let c = input[i]
         inc i
 
-        # Underscores are allowed anywhere in integer literals
+        # Underscores are allowed anywhere after the first char
         if c == '_':
+            val.add(c)
             continue
 
         if fmt == '\0':
             case c:
-            of '1'..'9':
+            of '0'..'9':
+                fmt = fmtDec
                 val.add(c)
-
-            of '0':
-                # First char can only be a zero if it is followed by a format char
-                if not isFirst or i < input.len and input[i] in fmtChars:
-                    val.add(c)
-                else:
-                    break
 
             of fmtChars:
                 if lastIs('0'):
@@ -139,12 +134,17 @@ func handleInteger(input: string, i: var int): Token =
             else:
                 break
 
-            if isFirst:
-                isFirst = false
-
         elif fmt == fmtBin:
             case c:
             of '0'..'1':
+                val.add(c)
+            
+            else:
+                break
+
+        elif fmt == fmtDec:
+            case c:
+            of '0'..'9':
                 val.add(c)
             
             else:
@@ -172,10 +172,16 @@ func handleInteger(input: string, i: var int): Token =
     dec i
     return Token(kind: IntegerLit, integerLitVal: val)
 
-iterator tokenize*(input: string): Token =
+iterator tokenize*(input: string): Token {.noSideEffect.} =
     var i = 0
     var lineNum: uint32 = 1
     var colNum: uint32 = 1
+
+    var lastToken: Token
+
+    template yieldToken(token: Token) =
+        lastToken = token
+        yield token
 
     block mainLoop:
         while i < input.len:
@@ -208,99 +214,118 @@ iterator tokenize*(input: string): Token =
                 of '"':
                     let strToken = handleString(input, i)
 
-                    yield strToken
+                    yieldToken strToken
 
                     if strToken.kind == TokenType.BadUnclosedStringLit:
                         # Return
                         break mainLoop
 
                 of '\'':
-                    yield handleChar(input, i)
+                    yieldToken handleChar(input, i)
 
                 of '`':
-                    let quotedKeywordToken = handleQuotedKeyword(input, i)
+                    let quotedIdentToken = handleQuotedIdent(input, i) 
 
-                    yield quotedKeywordToken
+                    yieldToken quotedIdentToken
 
-                    if quotedKeywordToken.kind == TokenType.BadUnclosedQuotedKeyword:
+                    if quotedIdentToken.kind == TokenType.BadUnclosedQuotedIdent:
                         # Return
                         break mainLoop
                 
                 of '0'..'9':
-                    yield handleInteger(input, i)
+                    let intToken = handleInteger(input, i)
+
+                    if nextIs('.'):
+                        var fracStr: string
+                        if i + 1 < input.len and input[i + 1] in {'0'..'9'}:
+                            i += 2
+                            fracStr = handleInteger(input, i).integerLitVal
+                        else:
+                            i += 1
+                            fracStr = ""
+
+                        yieldToken Token(
+                            kind: DecimalLit,
+                            decimalLitValWhole: intToken.integerLitVal,
+                            decimalLitValFrac: fracStr,
+                            lineNum: lineNum,
+                            colNum: colNum,
+                        )
+                    else:
+                        yield intToken
 
                 of '=':
                     if nextIs('='):
-                        yield Token(kind: EqualsComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: EqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
-                        yield Token(kind: Assignment, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: Assignment, lineNum: lineNum, colNum: colNum)
 
                 of '!':
                     if nextIs('='):
                         yield Token(kind: NotEqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
-                        yield Token(kind: BoolNot, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: BoolNot, lineNum: lineNum, colNum: colNum)
                 
                 of '<':
                     if nextIs('='):
                         yield Token(kind: LesserEqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
-                        yield Token(kind: LesserComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: LesserComparison, lineNum: lineNum, colNum: colNum)
 
                 of '>':
                     if nextIs('='):
                         yield Token(kind: GreaterEqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
-                        yield Token(kind: GreaterComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: GreaterComparison, lineNum: lineNum, colNum: colNum)
 
                 of '&':
                     if nextIs('&'):
-                        yield Token(kind: AndComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: AndComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
-                        yield Token(kind: BitwiseAnd, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: BitwiseAnd, lineNum: lineNum, colNum: colNum)
 
                 of '|':
                     if nextIs('|'):
                         yield Token(kind: OrComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
-                        yield Token(kind: BitwiseOr, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: BitwiseOr, lineNum: lineNum, colNum: colNum)
                 
                 of '^':
-                    yield Token(kind: BitwiseXor, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: BitwiseXor, lineNum: lineNum, colNum: colNum)
                 
                 of '~':
-                    yield Token(kind: BitwiseNot, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: BitwiseNot, lineNum: lineNum, colNum: colNum)
 
                 of '@':
                     let ident = handleIdentifierRaw(input, i)
-                    yield Token(kind: Annotation, annotationName: ident, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: Annotation, annotationName: ident, lineNum: lineNum, colNum: colNum)
 
                 of '.':
-                    yield Token(kind: Dot, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: Dot, lineNum: lineNum, colNum: colNum)
                 
                 of '(':
-                    yield Token(kind: OpenParenthesis, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: OpenParenthesis, lineNum: lineNum, colNum: colNum)
                 
                 of ')':
-                    yield Token(kind: CloseParenthesis, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: CloseParenthesis, lineNum: lineNum, colNum: colNum)
                 
                 of ':':
-                    yield Token(kind: Colon, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: Colon, lineNum: lineNum, colNum: colNum)
 
                 of ';':
-                    yield Token(kind: Semicolon, lineNum: lineNum, colNum: colNum)
+                    yieldToken Token(kind: Semicolon, lineNum: lineNum, colNum: colNum)
 
                 of '*':
-                    yield Token(kind: Asterisk, lineNum: lineNum, colNum: colNum)
-
+                    yieldToken Token(kind: Asterisk, lineNum: lineNum, colNum: colNum)
+ 
                 else:
-                    echo "TODO Other cases"
+                    debugEcho "TODO Other cases"
                     quit(1)
 
                 # TODO Other cases

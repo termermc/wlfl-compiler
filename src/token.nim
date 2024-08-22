@@ -1,13 +1,13 @@
 type TokenType* = enum
-    Keyword
-        ## Any unreserved keyword
+    Ident
+        ## Any identifier, a non-reserved keyword.
 
-    QuotedKeyword
-        ## Like Keyword, but quoted with backticks, and can have the same name as a reserved keyword.
+    QuotedIdent
+        ## Like Ident, but quoted with backticks, and can have the same name as a reserved keyword.
         ## Example: ``export`` 
 
-    BadUnclosedQuotedKeyword
-        ## Like QuotedKeyword, but unclosed.
+    BadUnclosedQuotedIdent
+        ## Like QuotedIdent, but unclosed.
         ## Example: ``export`
 
     Dot
@@ -163,12 +163,12 @@ type Token* = object
     colNum*: uint32
 
     case kind*: TokenType
-    of Keyword:
-        keywordName*: string
-    of QuotedKeyword:
-        quotedKeywordName*: string
-    of BadUnclosedQuotedKeyword:
-        badUnclosedQuotedKeywordVal*: string
+    of Ident:
+        identName*: string
+    of QuotedIdent:
+        quotedIdentName*: string
+    of BadUnclosedQuotedIdent:
+        badUnclosedQuotedIdentVal*: string
     of Dot:
         discard
     of OpenParenthesis:
@@ -250,7 +250,12 @@ type Token* = object
     of IntegerLit:
         integerLitVal*: string
     of DecimalLit:
-        decimalLitVal*: string
+        decimalLitValWhole*: string
+            ## The whole part of the decimal literal.
+
+        decimalLitValFrac*: string
+            ## The fractional part of the decimal literal.
+            ## May be empty.
     of CharLit:
         charLitVal*: string
             ## The content of the character literal.
