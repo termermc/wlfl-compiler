@@ -4,6 +4,7 @@ import ./token
 const alphanumericChars = {'a'..'z', 'A'..'Z', '0'..'9'}
 const wspChars = {' ', '\t'}
 const wspCharsCr = {' ', '\t', '\r'}
+const wspCharsCrLf = {' ', '\t', '\r', '\n'}
 
 func `==`(a, b: Rune | char): bool =
     return a.Rune == b.Rune
@@ -17,6 +18,20 @@ template nextIs(c: Rune | char): bool =
     indexIs(i, c)
 template lastIs(c: Rune | char): bool =
     indexIs(i - 2, c)
+
+## Adanves the current index if the index is at the start of the provided word and the word is followed by whitespace or EOF.
+## Returns whether the word was found and the index was advanced.
+template advanceIfWord(word: string): bool = (
+    if (
+        i + word.len - 1 <= input.len and
+        input[(i - 1)..(i + word.len - 2)] == word.toRunes() and
+        (i + word.len > input.len or input[i + word.len - 1].char in wspCharsCrLf)
+    ):
+        i += word.len - 1
+        true
+    else:
+        false
+)
 
 ## Handles tokenizing a string literal.
 ## Expects the first quote to already have been consumed.
@@ -205,6 +220,8 @@ func handleDocBlock(input: seq[Rune], i: var int): Token =
     
     return Token(kind: DocBlock, docBlockVal: val)
 
+## Iterator that scans over source code and produces tokens.
+## I know that line and column numbers are broken. I'll fix it later.
 iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
     var i = 0
     var lineNum: uint32 = 1
@@ -375,7 +392,38 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                     yieldToken Token(kind: Asterisk, lineNum: lineNum, colNum: colNum)
  
                 else:
-                    debugEcho "TODO Other cases"
-                    quit(1)
+                    if advanceIfWord("namespace"):
+                        yieldToken Token(kind: NamespaceKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("using"):
+                        yieldToken Token(kind: UsingKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("export"):
+                        yieldToken Token(kind: ExportKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("func"):
+                        yieldToken Token(kind: FuncKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("return"):
+                        yieldToken Token(kind: ReturnKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("break"):
+                        yieldToken Token(kind: BreakKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("continue"):
+                        yieldToken Token(kind: ContinueKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("do"):
+                        yieldToken Token(kind: DoKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("let"):
+                        yieldToken Token(kind: LetKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("var"):
+                        yieldToken Token(kind: VarKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("const"):
+                        yieldToken Token(kind: ConstKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("if"):
+                        yieldToken Token(kind: IfKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("while"):
+                        yieldToken Token(kind: WhileKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("true"):
+                        yieldToken Token(kind: TrueLit, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("false"):
+                        yieldToken Token(kind: FalseLit, lineNum: lineNum, colNum: colNum)
+                    else:
+                        debugEcho "TODO Other cases"
+                        quit(1)
 
                 # TODO Other cases

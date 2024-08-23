@@ -27,6 +27,8 @@ const code = """
 @cat0
 `fmt`0.1"lol"00.
 '中国'
+var const
+varconst
 """.toRunes()
 
 proc main(): int =
