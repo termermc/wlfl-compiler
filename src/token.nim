@@ -1,4 +1,8 @@
 type TokenType* = enum
+    IllegalToken
+        ## An illegal token.
+        ## This represents any token that is invalid.
+
     Ident
         ## Any identifier, a non-reserved keyword.
 
@@ -30,6 +34,9 @@ type TokenType* = enum
 
     Dot
         ## `.`
+    
+    Comma
+        ## `,`
 
     OpenParenthesis
         ## `(`
@@ -42,9 +49,6 @@ type TokenType* = enum
 
     Semicolon
         ## `;`
-
-    Asterisk
-        ## `*`
 
     Assignment
         ## `=`
@@ -105,12 +109,27 @@ type TokenType* = enum
 
     Subtract
         ## `-`
+    
+    MultiplyAssignment
+        ## `*=`
+    
+    DivideAssignment
+        ## `/=`
+
+    AddAssignment
+        ## `+=`
+    
+    SubtractAssignment
+        ## `-=`
 
     NamespaceKeyword
         ## `namespace`
 
     UsingKeyword
         ## `using`
+
+    AsKeyword
+        ## `as`
 
     Annotation
         ## `@` followed by zero or more alphanumeric characters.
@@ -145,6 +164,9 @@ type TokenType* = enum
 
     IfKeyword
         ## `if`
+
+    ElseKeyword
+        ## `else`
 
     WhileKeyword
         ## `while`
@@ -199,6 +221,8 @@ type Token* = object
     colNum*: uint32
 
     case kind*: TokenType
+    of IllegalToken:
+        illegalTokenVal*: string
     of Ident:
         identName*: string
     of QuotedIdent:
@@ -209,6 +233,8 @@ type Token* = object
         docBlockVal*: string
     of Dot:
         discard
+    of Comma:
+        discard
     of OpenParenthesis:
         discard
     of CloseParenthesis:
@@ -216,8 +242,6 @@ type Token* = object
     of Colon:
         discard
     of Semicolon:
-        discard
-    of Asterisk:
         discard
     of Assignment:
         discard
@@ -259,9 +283,19 @@ type Token* = object
         discard
     of Subtract:
         discard
+    of MultiplyAssignment:
+        discard
+    of DivideAssignment:
+        discard
+    of AddAssignment:
+        discard
+    of SubtractAssignment:
+        discard
     of NamespaceKeyword:
         discard
     of UsingKeyword:
+        discard
+    of AsKeyword:
         discard
     of Annotation:
         annotationName*: string
@@ -286,6 +320,8 @@ type Token* = object
     of ConstKeyword:
         discard
     of IfKeyword:
+        discard
+    of ElseKeyword:
         discard
     of WhileKeyword:
         discard

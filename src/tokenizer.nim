@@ -2,6 +2,7 @@ import std/unicode
 import ./token
 
 const alphanumericChars = {'a'..'z', 'A'..'Z', '0'..'9'}
+const identBasicChars = {'a'..'z', 'A'..'Z', '0'..'9', '_', '$'}
 const wspChars = {' ', '\t'}
 const wspCharsCr = {' ', '\t', '\r'}
 const wspCharsCrLf = {' ', '\t', '\r', '\n'}
@@ -92,6 +93,7 @@ func handleQuotedIdent(input: seq[Rune], i: var int): Token =
     
     return Token(kind: BadUnclosedQuotedIdent, badUnclosedQuotedIdentVal: val)
 
+## Reads an identifier, or returns an empty string if the identifier is invalid.
 func handleIdentifierRaw(input: seq[Rune], i: var int): string =
     var val = ""
 
@@ -101,14 +103,16 @@ func handleIdentifierRaw(input: seq[Rune], i: var int): string =
         let c = input[i]
         inc i
 
-        if c.char notin alphanumericChars or isFirst and c.char in {'0'..'9'}:
-            break
+        if (c.char notin identBasicChars and c.int32 <= 160) or (isFirst and c.char in {'0'..'9'}):
+            dec i
+            return ""
         else:
             val.add(c)
         
         if isFirst:
             isFirst = false
-    
+
+    dec i
     return val
 
 func handleInteger(input: seq[Rune], i: var int): Token =
@@ -229,7 +233,7 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
 
     var lastToken: Token
 
-    template yieldToken(token: Token) =
+    template yieldToken(token: Token): untyped =
         lastToken = token
         yield lastToken
 
@@ -318,6 +322,10 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                             
                             inc lineNum
                     
+                    elif nextIs('='):
+                        yieldToken Token(kind: DivideAssignment, lineNum: lineNum, colNum: colNum)
+                        advance(1)
+
                     else:
                         yieldToken Token(kind: Divide, lineNum: lineNum, colNum: colNum)
 
@@ -330,21 +338,21 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
 
                 of '!'.Rune:
                     if nextIs('='):
-                        yield Token(kind: NotEqualsComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: NotEqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
                         yieldToken Token(kind: BoolNot, lineNum: lineNum, colNum: colNum)
                 
                 of '<'.Rune:
                     if nextIs('='):
-                        yield Token(kind: LesserEqualsComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: LesserEqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
                         yieldToken Token(kind: LesserComparison, lineNum: lineNum, colNum: colNum)
 
                 of '>'.Rune:
                     if nextIs('='):
-                        yield Token(kind: GreaterEqualsComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: GreaterEqualsComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
                         yieldToken Token(kind: GreaterComparison, lineNum: lineNum, colNum: colNum)
@@ -358,7 +366,7 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
 
                 of '|'.Rune:
                     if nextIs('|'):
-                        yield Token(kind: OrComparison, lineNum: lineNum, colNum: colNum)
+                        yieldToken Token(kind: OrComparison, lineNum: lineNum, colNum: colNum)
                         advance(1)
                     else:
                         yieldToken Token(kind: BitwiseOr, lineNum: lineNum, colNum: colNum)
@@ -369,6 +377,33 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                 of '~'.Rune:
                     yieldToken Token(kind: BitwiseNot, lineNum: lineNum, colNum: colNum)
 
+                of '%'.Rune:
+                    yieldToken Token(kind: Modulo, lineNum: lineNum, colNum: colNum)
+                
+                of '*'.Rune:
+                    if nextIs('*'):
+                        yieldToken Token(kind: Exponent, lineNum: lineNum, colNum: colNum)
+                        advance(1)
+                    elif nextIs('='):
+                        yieldToken Token(kind: MultiplyAssignment, lineNum: lineNum, colNum: colNum)
+                        advance(1)
+                    else:
+                        yieldToken Token(kind: Multiply, lineNum: lineNum, colNum: colNum)
+                
+                of '+'.Rune:
+                    if nextIs('='):
+                        yieldToken Token(kind: AddAssignment, lineNum: lineNum, colNum: colNum)
+                        advance(1)
+                    else:
+                        yieldToken Token(kind: Add, lineNum: lineNum, colNum: colNum)
+
+                of '-'.Rune:
+                    if nextIs('='):
+                        yieldToken Token(kind: SubtractAssignment, lineNum: lineNum, colNum: colNum)
+                        advance(1)
+                    else:
+                        yieldToken Token(kind: Subtract, lineNum: lineNum, colNum: colNum)
+
                 of '@'.Rune:
                     let ident = handleIdentifierRaw(input, i)
                     yieldToken Token(kind: Annotation, annotationName: ident, lineNum: lineNum, colNum: colNum)
@@ -376,6 +411,9 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                 of '.'.Rune:
                     yieldToken Token(kind: Dot, lineNum: lineNum, colNum: colNum)
                 
+                of ','.Rune:
+                    yieldToken Token(kind: Comma, lineNum: lineNum, colNum: colNum)
+
                 of '('.Rune:
                     yieldToken Token(kind: OpenParenthesis, lineNum: lineNum, colNum: colNum)
                 
@@ -387,15 +425,26 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
 
                 of ';'.Rune:
                     yieldToken Token(kind: Semicolon, lineNum: lineNum, colNum: colNum)
-
-                of '*'.Rune:
-                    yieldToken Token(kind: Asterisk, lineNum: lineNum, colNum: colNum)
  
+                of '{'.Rune:
+                    yieldToken Token(kind: OpenCurlyBracket, lineNum: lineNum, colNum: colNum)
+                
+                of '}'.Rune:
+                    yieldToken Token(kind: CloseCurlyBracket, lineNum: lineNum, colNum: colNum)
+                
+                of '['.Rune:
+                    yieldToken Token(kind: OpenSquareBracket, lineNum: lineNum, colNum: colNum)
+                
+                of ']'.Rune:
+                    yieldToken Token(kind: CloseSquareBracket, lineNum: lineNum, colNum: colNum)
+
                 else:
                     if advanceIfWord("namespace"):
                         yieldToken Token(kind: NamespaceKeyword, lineNum: lineNum, colNum: colNum)
                     elif advanceIfWord("using"):
                         yieldToken Token(kind: UsingKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("as"):
+                        yieldToken Token(kind: AsKeyword, lineNum: lineNum, colNum: colNum)
                     elif advanceIfWord("export"):
                         yieldToken Token(kind: ExportKeyword, lineNum: lineNum, colNum: colNum)
                     elif advanceIfWord("func"):
@@ -416,6 +465,8 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                         yieldToken Token(kind: ConstKeyword, lineNum: lineNum, colNum: colNum)
                     elif advanceIfWord("if"):
                         yieldToken Token(kind: IfKeyword, lineNum: lineNum, colNum: colNum)
+                    elif advanceIfWord("else"):
+                        yieldToken Token(kind: ElseKeyword, lineNum: lineNum, colNum: colNum)
                     elif advanceIfWord("while"):
                         yieldToken Token(kind: WhileKeyword, lineNum: lineNum, colNum: colNum)
                     elif advanceIfWord("true"):
@@ -423,7 +474,13 @@ iterator tokenize*(input: seq[Rune]): Token {.noSideEffect.} =
                     elif advanceIfWord("false"):
                         yieldToken Token(kind: FalseLit, lineNum: lineNum, colNum: colNum)
                     else:
-                        debugEcho "TODO Other cases"
-                        quit(1)
+                        dec i
+                        let ident = handleIdentifierRaw(input, i)
+
+                        if ident == "":
+                            yieldToken Token(kind: IllegalToken, illegalTokenVal: $input[i], lineNum: lineNum, colNum: colNum)
+                            advance(1, cont = true)
+
+                        yieldToken Token(kind: Ident, identName: ident, lineNum: lineNum, colNum: colNum)
 
                 # TODO Other cases
